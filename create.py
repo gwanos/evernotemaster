@@ -1,3 +1,4 @@
+import argparse
 import json
 import warnings
 import kakaochat.extractor
@@ -12,7 +13,7 @@ class Main:
         self.config = json.loads(self.file.read())
         self.note_coordinator = NoteCoordinator(self.config['Token'])
 
-    def create_from_chat(self, notebook_name, chat, users):
+    def create_from_chat(self, chat, users, notebook_name):
         messages = kakaochat.extractor.extract_message_from_csv_group_by_date(chat, users)
 
         notebooks = self.note_coordinator.get_notebooks()
@@ -24,5 +25,11 @@ class Main:
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='카카오 채팅 중 원하는 상대의 메세지만 선택해 에버노트에 저장합니다.')
+    parser.add_argument('--chat', required=True, help='카카오 채팅 csv 파일')
+    parser.add_argument('--user', required=True, help='유저')
+    parser.add_argument('--notebook', required=True, help='에버노트 노트북 이름')
+
+    args = parser.parse_args()
     main = Main()
-    main.create_from_chat("", "", "")
+    main.create_from_chat(args.chat, args.user, args.notebook)

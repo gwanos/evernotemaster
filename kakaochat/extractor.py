@@ -2,8 +2,10 @@ import pandas as pd
 
 
 def extract_message_from_csv(chat, users):
+    if chat == "":
+        raise ValueError('Please designate kakaochat csv file.')
     if chat.endswith('.csv') is False:
-        raise ValueError('Only .csv kakaochat is permitted.')
+        raise ValueError('Only .csv file is permitted.')
 
     result = {}
     for user in users:
