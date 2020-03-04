@@ -16,6 +16,13 @@ def extract_message_from_csv(chat, users):
     for user in users:
         result[user] = []
 
+    special_chars = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        '\'': '&apos;'
+    }
     data = pd.read_csv(chat)
     for user in users:
         for index, row in data.iterrows():
@@ -24,7 +31,7 @@ def extract_message_from_csv(chat, users):
                 message = row['Message']
                 if is_invalid(message):
                     continue
-                result[user].append((date, replace_ampersand(message)))
+                result[user].append((date, replace_xml_special_chracters(message, special_chars)))
 
     return result
 
@@ -46,8 +53,10 @@ def extract_message_from_csv_group_by_date(chat, users):
     return result
 
 
-def replace_ampersand(message):
-    return message.replace('&', '&amp;')
+def replace_xml_special_chracters(message, special_chars):
+    for k, v in special_chars.items():
+        message = message.replace(k, v)
+    return message
 
 
 def is_invalid(message):
