@@ -19,7 +19,7 @@ class TestExtract(unittest.TestCase):
         except Exception as ex:
             print(ex)
 
-    #@unittest.skip
+    @unittest.skip
     def test_extract_message_from_csv_group_by_date(self):
         try:
             result = extractor.extract_message_from_csv_group_by_date(self.chat, self.users)

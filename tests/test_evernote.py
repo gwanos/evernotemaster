@@ -1,10 +1,14 @@
 import unittest
 import json
 import warnings
+import dateutil.parser as dparser
 from kakaochat import extractor
 from evernotecore.coordinator import NoteCoordinator
 from evernotecore.coordinator import UserCoordinator
 from evernotecore.contents import Content
+from evernotecore.error.errors import *
+from datetime import datetime
+import evernotecore.contents
 
 
 class TestEvernote(unittest.TestCase):
@@ -12,8 +16,8 @@ class TestEvernote(unittest.TestCase):
         warnings.filterwarnings("ignore", category=ResourceWarning, message="unclosed.*<ssl.SSLSocket.*>")
         self.file = open('../evernotecore/config.json')
         self.config = json.loads(self.file.read())
-        self.user_coordinator = UserCoordinator(self.config['Token'])
-        self.note_coordinator = NoteCoordinator(self.config['Token'])
+        self.user_coordinator = UserCoordinator(self.config['Token'], False)
+        self.note_coordinator = NoteCoordinator(self.config['Token'], False)
 
     def tearDown(self) -> None:
         self.file.close()
@@ -38,36 +42,41 @@ class TestEvernote(unittest.TestCase):
         result = self.note_coordinator.create_note(content, notebook[0])
         print(result)
 
+    #@unittest.skip
     def test_create_note_with_file_on_notebook(self):
-        # 노트북
-        notebook_name = '투자'
-        notebooks = self.note_coordinator.get_notebooks()
-        notebook = list(filter(lambda x: x.name == notebook_name, notebooks))
-
         # 파일
-        #chat = './sample_chat/KakaoTalk_Chat_09 소그룹_2020-03-01-10-16-45.csv'
-        chat = './sample_chat/KakaoTalk_Chat_이현석 유료리딩방_2020-02-27-14-02-14.csv'
-        #users = ['이관호']
-        users = ['이현석(로투스)']
+        chat = './sample_chat/KakaoTalk_Chat_09 소그룹_2020-03-01-10-16-45.csv'
+        users = ['이관호']
         messages = extractor.extract_message_from_csv_group_by_date(chat, users)
+        chatroom_name = extractor.get_room_name(chat)
 
         # 에버노트 컨텐츠
-        contents = []
-        for key in messages.keys():
-            body = f"{key}<br/><br/>"
-            for value in messages[key]:
-                body += f"{value}<br/>"
-            content = Content(f"{key}", body)
-            contents.append(content)
+        contents = evernotecore.contents.make_contents_from_message(messages, chatroom_name)
 
-        # 노트 생성
         try:
+            # 노트북
+            notebook_name = '[Default] InBox'
+            notebook = self.note_coordinator.get_notebook(notebook_name)
+            latest = self.note_coordinator.get_latest_note_on_notebook(notebook)
+            last_update = None if latest is None else dparser.parse(latest.title, fuzzy=True)
+
+            # 노트 생성
+            results = []
             for content in contents:
-                result = self.note_coordinator.create_note(content, notebook[0])
-            pass
+                current_date = dparser.parse(content.title, fuzzy=True)
+                if current_date <= last_update:
+                    continue
+                ret = self.note_coordinator.create_note(content, notebook)
+                results.append(ret)
+
+            print(f'Done. Total {len(results)} notes created.')
+            for ret in results:
+                print(f'Title: {ret.title}. Active: {ret.active}')
+        except EvernoteMasterError as ex:
+            print(ex.message)
         except Exception as ex:
             print(ex)
-        pass
+
 
     @unittest.skip
     def test_get_notebooks(self):
@@ -85,9 +94,12 @@ class TestEvernote(unittest.TestCase):
 
     @unittest.skip
     def test_find_notes_metadata(self):
-        metadata = self.note_coordinator.find_notes_metadata()
-        for note in metadata.notes:
-            print(note.title)
+        try:
+            metadata = self.note_coordinator.find_notes_metadata()
+            for note in metadata.notes:
+                print(note.title)
+        except Exception as ex:
+            print(ex)
 
     @unittest.skip
     def test_find_note_counts(self):

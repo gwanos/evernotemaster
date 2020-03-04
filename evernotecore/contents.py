@@ -17,13 +17,13 @@ class ContentBody:
         return self.__header + self.__body_template.substitute(body=body)
 
 
-def make_contents_from_message(messages):
+def make_contents_from_message(messages, title_prefix=''):
     result = []
     for key in messages.keys():
-        body = f"{key}<br/><br/>"
+        body = ''
         for value in messages[key]:
-            body += f"{value}<br/>"
-        content = Content(f"{key}", body)
+            body += f'{value}<br/>'
+        content = Content(f'{title_prefix}_{key}', body)
         result.append(content)
 
     return result
